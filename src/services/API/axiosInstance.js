@@ -1,13 +1,13 @@
 import axios from 'axios';
 // require('dotenv').config();
 const axiosInstance = axios.create({
-    baseURL: process.env.REACT_APP_BACKEND_API_URL || 'http://localhost:5000',
+    baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-console.log('Backend API URL:', process.env.REACT_APP_BACKEND_API_URL || 'http://localhost:5000');
+console.log('Backend API URL:', process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
 
 axiosInstance.interceptors.request.use((config) => {
     const token = localStorage.getItem('accessToken');
@@ -31,7 +31,7 @@ axiosInstance.interceptors.response.use(
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           const { data } = await axios.post(
-            process.env.REACT_APP_BACKEND_API_URL + '/api/auth/refresh-token',
+            process.env.REACT_APP_BACKEND_URL + '/api/auth/refresh-token',
             { refreshToken }
           );
           localStorage.setItem('accessToken', data.accessToken);
@@ -39,19 +39,25 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         } catch (err) {
           console.error('Refresh token failed:', err);
-  
-          // If the refresh token is also expired
-          if (err.response?.status === 403 && err.response?.data?.error === 'TokenExpiredError') {
-            console.error('Refresh token expired');
+          
+         
+          if (err.response?.data?.error === 'TokenExpiredError' || 
+              err.response?.status === 401) {
+            console.error('Refresh token expired - logging out');
+          
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
-            window.location.href = '/'; // Redirect to login
+            localStorage.removeItem('userId');
+            localStorage.removeItem('user');
+            
+            window.location.replace('/');
           }
+          return Promise.reject(err);
         }
       }
   
       return Promise.reject(error);
     }
-  );
+);
   
 export default axiosInstance;

@@ -14,10 +14,10 @@ function Login() {
 
     const handleLogin = async() => {
       try{  
-        setError(''); // Clear any previous errors
+        setError(''); 
         let result = await authAPI.login(email,password);
         console.log('result', result);
-        navigate('/dashboard'); // Redirect to dashboard after successful login
+        navigate('/dashboard'); 
       }catch(error){
         console.log('error', error);
         setError(error.message || 'Login failed. Please try again.');
@@ -38,8 +38,8 @@ function Login() {
                 </Alert>
               )}
               <div className={styles.inputData}>
-                  <TextField id="standard-basic" label="Email" variant="standard" onChange={(e)=>setEmail(e.target.value)}/>
-                  <TextField id="standard-basic" label="Password" variant="standard" onChange={(e)=>setPassword(e.target.value)}/>
+                  <TextField id="standard-basic" required label="Email" variant="standard" onChange={(e)=>setEmail(e.target.value)}/>
+                  <TextField id="standard-basic" required label="Password" type="password" variant="standard" onChange={(e)=>setPassword(e.target.value)}/>
                   <Button variant="contained" onClick={handleLogin}>Login</Button>  
               </div>
               <p>

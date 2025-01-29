@@ -38,14 +38,14 @@ const SignUp = () => {
       newErrors.email = 'Invalid email address';
     }
     
-    // if (!formData.mobile || !/^[0-9]{10}$/.test(formData.mobile)) {
-    //   newErrors.mobile = 'Mobile number must be 10 digits';
-    // }
+    if (!formData.mobile || !/^[0-9]{10}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Mobile number must be 10 digits';
+    }
     
-    // if (!formData.password || formData.password.length < 8 || 
-    //     !/[a-zA-Z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-    //   newErrors.password = 'Password must be at least 8 characters and contain letters and numbers';
-    // }
+    if (!formData.password || formData.password.length < 8 || 
+        !/[a-zA-Z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+      newErrors.password = 'Password must be at least 8 characters and contain letters and numbers';
+    }
     
     if (!formData.country) newErrors.country = 'Country is required';
     if (!formData.city) newErrors.city = 'City is required';
@@ -72,6 +72,7 @@ const SignUp = () => {
         let result = await authAPI.register(formData);
         let response = await result;
         console.log('response', response);
+        window.location.href = '/';  
       } catch (error) {
         console.error('Signup failed:', error);
         if (error.response?.data?.message) {
@@ -106,6 +107,7 @@ const SignUp = () => {
               fullWidth
               name="name"
               label="Name"
+               variant="standard"
               value={formData.name}
               onChange={handleChange}
               error={Boolean(errors.name)}
@@ -118,6 +120,7 @@ const SignUp = () => {
               name="email"
               label="Email"
               type="email"
+              variant="standard"
               value={formData.email}
               onChange={handleChange}
               error={Boolean(errors.email)}
@@ -129,6 +132,7 @@ const SignUp = () => {
               fullWidth
               name="mobile"
               label="Mobile Number"
+               variant="standard"
               value={formData.mobile}
               onChange={handleChange}
               error={Boolean(errors.mobile)}
@@ -141,6 +145,7 @@ const SignUp = () => {
               name="password"
               label="Password"
               type="password"
+               variant="standard"
               value={formData.password}
               onChange={handleChange}
               error={Boolean(errors.password)}
@@ -152,6 +157,7 @@ const SignUp = () => {
               fullWidth
               name="country"
               label="Country"
+               variant="standard"
               value={formData.country}
               onChange={handleChange}
               error={Boolean(errors.country)}
@@ -163,6 +169,7 @@ const SignUp = () => {
               fullWidth
               name="city"
               label="City"
+               variant="standard"
               value={formData.city}
               onChange={handleChange}
               error={Boolean(errors.city)}
@@ -174,6 +181,7 @@ const SignUp = () => {
               fullWidth
               name="state"
               label="State"
+               variant="standard"
               value={formData.state}
               onChange={handleChange}
               error={Boolean(errors.state)}
@@ -187,6 +195,7 @@ const SignUp = () => {
                 name="gender"
                 value={formData.gender}
                 label="Gender"
+                 variant="standard"
                 onChange={handleChange}
                 error={Boolean(errors.gender)}
               >

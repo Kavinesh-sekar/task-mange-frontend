@@ -1,50 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import styles from '../Styles/Dashboard.module.css';  // Create this CSS file
-import { Dialog, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
+import styles from '../Styles/Dashboard.module.css';  
+import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, MenuItem } from '@mui/material';
 import { Button } from '@mui/material';
+import taskService from '../services/API/taskAPI';
 
-const paginationModel = { page: 0, pageSize: 5 };
 
-const columns = [
-    { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'firstName', headerName: 'First name', width: 130 },
-    { field: 'lastName', headerName: 'Last name', width: 130 },
-    {
-      field: 'age',
-      headerName: 'Age',
-      type: 'number',
-    //   width: 90,
-    },
-    {
-      field: 'fullName',
-      headerName: 'Full name',
-      description: 'This column has a value getter and is not sortable.',
-      sortable: false,
-    //   width: 160,
-    //   valueGetter: (value, row) => `${row.firstName || ''} ${row.lastName || ''}`,
-    },
-  ];
-  
-  const rows = [
-    { id: 1, lastName: 'Snow', firstName: 'Jon', age: 35 },
-    { id: 2, lastName: 'Lannister', firstName: 'Cersei', age: 42 },
-    { id: 3, lastName: 'Lannister', firstName: 'Jaime', age: 45 },
-    { id: 4, lastName: 'Stark', firstName: 'Arya', age: 16 },
-    { id: 5, lastName: 'Targaryen', firstName: 'Daenerys', age: null },
-    { id: 6, lastName: 'Melisandre', firstName: null, age: 150 },
-    { id: 7, lastName: 'Clifford', firstName: 'Ferrara', age: 44 },
-    { id: 8, lastName: 'Frances', firstName: 'Rossini', age: 36 },
-    { id: 9, lastName: 'Roxie', firstName: 'Harvey', age: 65 },
-  ];
 
 function DashBoardPage() {
+
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [taskList, setTaskList] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+const datas = localStorage.getItem('user'); 
+const idparsed = JSON.parse(datas);
+const userId = idparsed._id;
+
+
+useEffect(()=>{
+  const fetchTaskList = async () => {
+    try{
+      const data = await taskService.getTaskList(userId);
+
+      setTaskList(data);
+      console.log('taskList',taskList);
+    }catch(error){
+      console.log('Error fetching task list:', error);
+    }
+
+  };
+  fetchTaskList();
+},[]);
+
+console.log('taskListeeeeeeeeeeee',taskList.tasks);
 
 
 
@@ -54,7 +47,13 @@ function DashBoardPage() {
   };
 
   const handleEditTask = (row) => {
-    setEditData(row);
+   
+    const formattedTask = {
+      ...row,
+      startDate: row.startDate ? new Date(row.startDate).toISOString().split('T')[0] : '',
+      endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : ''
+    };
+    setEditData(formattedTask);
     setOpen(true);
   };
 
@@ -63,28 +62,71 @@ function DashBoardPage() {
     setEditData(null);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    console.log('dddddddddd',formData);
     const formJson = Object.fromEntries(formData.entries());
+    
+  
     if(editData){
-
+  
+        try{
+            const updatedTaskListdata = await taskService.updateTask({ ...formJson, taskId: editData._id });
+            const updatedTaskList = await taskService.getTaskList(userId);
+            console.log('updatedTaskList',updatedTaskListdata);
+            setOpen(false);
+            setEditData(null);  
+            setTaskList(updatedTaskList);
+        }catch(error){
+            console.log('Error updating task:', error);
+        }
         
     }else{
 
-        // console.log('Adding new task:', { ...editData, id: editData.id });
+      try{
+       const data = await taskService.addTask({ ...formJson, userId }); 
+       const updatedTaskList = await taskService.getTaskList(userId);
+       console.log('updatedTaskList',updatedTaskList);
+       console.log('post task data',data);
+        setOpen(false);
+        setEditData(null);  
+        setTaskList(updatedTaskList);
+
+      }catch(error){
+        console.log('Error adding task:', error);
+      }
+
+
     }
   };
 
-  const handleSearch = () => {
-    console.log('Search');
+  const handleSearch = (event) => {
+    setStatusFilter(event.target.value);
+  };
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    window.location.href = '/'; 
+  };
 
-  }
+  const filteredTasks = taskList.tasks?.filter(task => {
+    if (statusFilter === 'all') return true;
+    return task.status === statusFilter;
+  });
 
-  const handleDeleteTask = (id) => {
+  const handleDeleteTask = async (id) => {
+    console.log('id',id._id);
+    try{
+      const data = await taskService.deleteTask(id._id);
+      console.log('deleted task data',data);
+      const updatedTaskList = await taskService.getTaskList(userId);
+      console.log('updatedTaskList',updatedTaskList);
+      setTaskList(updatedTaskList);
+    }catch(error){
+      console.log('Error deleting task:', error);
+    }
     console.log('Deleting task with id:', id);
-    // Add your delete logic here
+  
   };
 
   return (
@@ -92,16 +134,21 @@ function DashBoardPage() {
       <div className={styles.header}>
         <h2>Task List</h2>
         <div className={styles.headerActions}>
+          <Button variant="contained" color="error" onClick={handleLogout}>Logout</Button>
           <div className={styles.searchContainer}>
-            <input 
-              type="text" 
-              placeholder="Search by name..." 
+            <select 
               className={styles.searchInput}
-            />
-            <SearchIcon className={styles.searchIcon} />
+              value={statusFilter}
+              onChange={handleSearch}
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
           </div>
-          <button className={styles.createButton} >
-            <AddIcon className={styles.plusIcon} onClick={handleAddTask}  />
+          <button className={styles.createButton} onClick={handleAddTask}>
+            <AddIcon className={styles.plusIcon}  />
             Create
           </button>
         </div>
@@ -112,7 +159,7 @@ function DashBoardPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
+              <th>Title</th>
               <th>Description</th>
               <th>Start Date</th>
               <th>End Date</th>
@@ -121,13 +168,17 @@ function DashBoardPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {filteredTasks?.map((row,index) => (
               <tr key={row.id}>
-                <td>{row.id}</td>
-                <td>{row.firstName}</td>
-                <td>{row.lastName}</td>
-                <td>{row.age}</td>
+                <td>{index+1}</td>
+                <td>{row.title}</td>
+                <td>{row.description}</td>
+                <td>{row.startDate.split('T')[0]}</td>
+                <td>{row.endDate.split('T')[0]}</td>
+                <td>{row.status}</td>
                 <td>
+
+
                   <Button
                     variant="contained"
                     size="small"
@@ -140,7 +191,7 @@ function DashBoardPage() {
                     variant="contained"
                     color="error"
                     size="small"
-                    onClick={() => handleDeleteTask(row.id)}
+                    onClick={() => handleDeleteTask(row)}
                   >
                     Delete
                   </Button>
@@ -165,12 +216,13 @@ function DashBoardPage() {
             autoFocus
             required
             margin="dense"
-            name="name"
-            label="Name"
+            name="title"
+            label="Title"
             type="text"
             fullWidth
             variant="standard"
-            defaultValue={editData?.name || ''}
+            defaultValue={editData?.title || ''}
+
           />
           <TextField
             required
@@ -193,7 +245,10 @@ function DashBoardPage() {
             fullWidth
             variant="standard"
             defaultValue={editData?.startDate || ''}
-            />
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
           <TextField
             required
             margin="dense"
@@ -203,17 +258,24 @@ function DashBoardPage() {
             fullWidth
             variant="standard"
             defaultValue={editData?.endDate || ''}
+            InputLabelProps={{
+              shrink: true,
+            }}
           />    
           <TextField
             required
+            select
             margin="dense"
             name="status"
             label="Status"
-            type="text"
             fullWidth
             variant="standard"
-            defaultValue={editData?.status || ''}
-          />    
+            defaultValue={editData?.status || 'pending'}
+          >
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="in-progress">In Progress</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
+          </TextField>    
 
         </DialogContent>
         <DialogActions>
